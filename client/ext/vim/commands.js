@@ -251,6 +251,13 @@ var actions = {
             txtConsoleInput.setValue(":");
         }
     },
+    "º": { // Hack since chrome throws keycode for º instead of : on shift+;
+        fn: function(editor, range, count, param) {
+            editor.blur();
+            txtConsoleInput.focus();
+            txtConsoleInput.setValue(":");
+        }
+    },
     "/": {
         fn: function(editor, range, count, param) {
             editor.blur();
