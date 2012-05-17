@@ -253,7 +253,7 @@ module.exports = ext.register("ext/filesystem/filesystem", {
 
         node.setAttribute("oldpath", node.getAttribute("path"));
         node.setAttribute("path", newPath);
-        if (isCopyAction)
+        if (isCopyAction || node.getAttribute('name') != name)
             apf.xmldb.setAttribute(node, "name", name);
 
         // when this is a copy action, then we don't want this to happen
@@ -374,20 +374,21 @@ module.exports = ext.register("ext/filesystem/filesystem", {
         });
 
         var dav_url = location.href.replace(location.pathname + location.hash, "") + ide.davPrefix;
-        this.webdav = new apf.webdav({
+        this.webdav = apf.document.documentElement.appendChild(new apf.webdav({
             id  : "davProject",
             url : dav_url,
             onauthfailure: function() {
                 ide.dispatchEvent("authrequired");
             }
-        });
+        }));
 
         function openHandler(e) {
             ide.send({
                 command: "internal-isfile",
                 argv: e.data.argv,
                 cwd: e.data.cwd,
-                sender: "filesystem"
+                sender: "filesystem",
+                extra: e.data.extra
             });
             return false;
         }

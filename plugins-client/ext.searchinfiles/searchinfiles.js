@@ -237,6 +237,7 @@ module.exports = ext.register("ext/searchinfiles/searchinfiles", apf.extend({
 
         tooltipSearchInFiles.$ext.style.display = "none";
 
+        var animate = apf.isTrue(settings.model.queryValue("general/@animateui"));
         if (!force && !winSearchInFiles.visible || force > 0) {
             if (winSearchInFiles.visible) {
                 txtSFFind.focus();
@@ -245,7 +246,9 @@ module.exports = ext.register("ext/searchinfiles/searchinfiles", apf.extend({
             }
             
             if (searchreplace.inited && winSearchReplace.visible) {
-                searchreplace.toggleDialog(-1, null, null, function(){
+                txtSFFind.focus();
+                txtSFFind.select();
+                searchreplace.toggleDialog(-1, null, true, function(){
                     _self.toggleDialog(force, isReplace, noselect);
                 });
                 return;
@@ -265,10 +268,10 @@ module.exports = ext.register("ext/searchinfiles/searchinfiles", apf.extend({
                 var value = doc.getTextRange(range);
     
                 if (value) {
-                    txtFind.setValue(value);
+                    txtSFFind.setValue(value);
                     
-                    delete txtFind.$undo;
-                    delete txtFind.$redo;
+                    delete txtSFFind.$undo;
+                    delete txtSFFind.$redo;
                     
                     if (chkRegEx.checked)
                         this.updateInputRegExp(txtSFFind);
@@ -283,46 +286,71 @@ module.exports = ext.register("ext/searchinfiles/searchinfiles", apf.extend({
             document.body.scrollTop = 0;
             
             //Animate
-            Firmin.animate(winSearchInFiles.$ext, {
-                height: "102px",
-                timingFunction: "cubic-bezier(.10, .10, .25, .90)"
-            }, 0.2, function() {
-                winSearchInFiles.$ext.style[apf.CSSPREFIX + "TransitionDuration"] = "";
+            if (animate && !apf.isGecko) {
+                Firmin.animate(winSearchInFiles.$ext, {
+                    height: "102px",
+                    timingFunction: "cubic-bezier(.10, .10, .25, .90)"
+                }, 0.2, function() {
+                    winSearchInFiles.$ext.style[apf.CSSPREFIX + "TransitionDuration"] = "";
+                    winSearchInFiles.$ext.style.height = "";
+                    
+                    setTimeout(function(){
+                        apf.layout.forceResize();
+                    }, 50);
+                });
+            }
+            else {
                 winSearchInFiles.$ext.style.height = "";
-                
-                setTimeout(function(){
-                    apf.layout.forceResize();
-                }, 50);
-            });
+                apf.layout.forceResize();
+            }
         }
         else if (winSearchInFiles.visible) {
+            
+
             if (txtSFFind.getValue())
                 _self.saveHistory(txtSFFind.getValue());
             
-            winSearchInFiles.visible = false;
             
-            winSearchInFiles.$ext.style.height 
-                = winSearchInFiles.$ext.offsetHeight + "px";
-
             //Animate
-            Firmin.animate(winSearchInFiles.$ext, {
-                height: "0px",
-                timingFunction: "ease-in-out"
-            }, 0.2, function(){
-                winSearchInFiles.visible = true;
-                winSearchInFiles.hide();
+            if (animate && !apf.isGecko) {
+                winSearchInFiles.visible = false;
                 
-                winSearchInFiles.$ext.style[apf.CSSPREFIX + "TransitionDuration"] = "";
+                winSearchInFiles.$ext.style.height 
+                    = winSearchInFiles.$ext.offsetHeight + "px";
 
-                if (!noselect && editors.currentEditor)
-                    editors.currentEditor.ceEditor.focus();
-                
-                setTimeout(function(){
-                    callback 
-                        ? callback()
-                        : apf.layout.forceResize();
-                }, 50);
-            });
+                Firmin.animate(winSearchInFiles.$ext, {
+                    height: "0px",
+                    timingFunction: "ease-in-out"
+                }, 0.2, function(){
+                    winSearchInFiles.visible = true;
+                    
+                    if(noselect && apf.window.activeElement) {
+                        var curEle = apf.window.activeElement;
+                        winSearchInFiles.hide();
+                        curEle.focus();
+                        curEle.select();
+                    } else {
+                        winSearchInFiles.hide();
+                    }
+
+                    winSearchInFiles.$ext.style[apf.CSSPREFIX + "TransitionDuration"] = "";
+                    
+                    if (!noselect && editors.currentEditor)
+                        editors.currentEditor.ceEditor.focus();
+                        
+                    setTimeout(function(){
+                        callback 
+                            ? callback()
+                            : apf.layout.forceResize();
+                    }, 50);
+                });
+            }
+            else {
+                winSearchInFiles.hide();
+                callback 
+                    ? callback()
+                    : apf.layout.forceResize();
+            }
         }
 
         return false;
