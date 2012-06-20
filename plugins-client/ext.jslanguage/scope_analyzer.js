@@ -19,6 +19,13 @@ var completeUtil = require("ext/codecomplete/complete_util");
 var handler = module.exports = Object.create(baseLanguageHandler);
 require('treehugger/traverse');
 
+var PROPER = module.exports.PROPER = 80;
+var MAYBE_PROPER = module.exports.MAYBE_PROPER = 1;
+var NOT_PROPER = module.exports.NOT_PROPER = 0;
+var KIND_EVENT = module.exports.KIND_EVENT = "event";
+var KIND_PACKAGE = module.exports.KIND_PACKAGE = "package";
+var KIND_DEFAULT = module.exports.KIND_DEFAULT = undefined;
+
 // Based on https://github.com/jshint/jshint/blob/master/jshint.js#L331
 var GLOBALS = {
     // Literals
@@ -306,6 +313,19 @@ Variable.prototype.addDeclaration = function(node) {
     this.declarations.push(node);
 };
 
+Variable.prototype.markProperDeclaration = function(confidence) {
+    if (!confidence)
+        return;
+    else if (!this.properDeclarationConfidence)
+        this.properDeclarationConfidence = confidence;
+    else if (this.properDeclarationConfidence < PROPER)
+        this.properDeclarationConfidence += confidence;
+};
+
+Variable.prototype.isProperDeclaration = function() {
+    return this.properDeclarationConfidence > MAYBE_PROPER;
+};
+
 /**
  * Implements Javascript's scoping mechanism using a hashmap with parent
  * pointers.
@@ -319,12 +339,20 @@ var Scope = module.exports.Scope = function Scope(parent) {
 /**
  * Declare a variable in the current scope
  */
-Scope.prototype.declare = function(name, resolveNode) {
-    if(!this.vars['_'+name]) 
-        this.vars['_'+name] = new Variable(resolveNode);
-    else if(resolveNode)
-        this.vars['_'+name].addDeclaration(resolveNode);
-    return this.vars['_'+name];
+Scope.prototype.declare = function(name, resolveNode, properDeclarationConfidence, kind) {
+    var result;
+    if (!this.vars['_'+name]) {
+        result = this.vars['_'+name] = new Variable(resolveNode);
+    }
+    else if (resolveNode) {
+        result = this.vars['_'+name];
+        result.addDeclaration(resolveNode);
+    }
+    if (result) {
+        result.markProperDeclaration(properDeclarationConfidence);
+        result.kind = kind;
+    }
+    return result;
 };
 
 Scope.prototype.isDeclared = function(name) {
@@ -387,19 +415,19 @@ handler.analyze = function(doc, ast, callback) {
             // var bla;
             'VarDecl(x)', function(b, node) {
                 node.setAnnotation("scope", scope);
-                scope.declare(b.x.value, b.x);
+                scope.declare(b.x.value, b.x, PROPER);
                 return node;
             },
             // var bla = 10;
             'VarDeclInit(x, e)', function(b, node) {
                 node.setAnnotation("scope", scope);
-                scope.declare(b.x.value, b.x);
+                scope.declare(b.x.value, b.x, PROPER);
             },
             // function bla(farg) { }
             'Function(x, _, _)', function(b, node) {
                 node.setAnnotation("scope", scope);
                 if(b.x.value) {
-                    scope.declare(b.x.value, b.x);
+                    scope.declare(b.x.value, b.x, PROPER);
                 }
                 return node;
             }
@@ -476,10 +504,10 @@ handler.analyze = function(doc, ast, callback) {
                 'Catch(x, body)', function(b, node) {
                     var oldVar = scope.get(b.x.value);
                     // Temporarily override
-                    scope.vars[b.x.value] = new Variable(b.x);
+                    scope.vars["_" + b.x.value] = new Variable(b.x);
                     scopeAnalyzer(scope, b.body, localVariables);
                     // Put back
-                    scope.vars[b.x.value] = oldVar;
+                    scope.vars["_" + b.x.value] = oldVar;
                     return node;
                 },
                 'PropAccess(_, "lenght")', function(b, node) {

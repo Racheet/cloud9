@@ -17,6 +17,7 @@ var projectDir = (argv.w && path.resolve(process.cwd(), argv.w)) || process.cwd(
 var fsUrl = "/workspace";
 
 var port = argv.p || process.env.PORT || 3131;
+var host = argv.l || "localhost";
 
 var config = {
     name: "Cloud9",
@@ -28,7 +29,7 @@ var config = {
             plugins: [{
                 packagePath: "./cloud9.connect",
                 port: port,
-                host: "localhost"
+                host: host
             }, {
                 packagePath: "./cloud9.sourcemint",
                 prefix: "/static/bundles",
@@ -54,7 +55,9 @@ var config = {
                 packagePath: "./cloud9.sandbox",
                 projectDir: projectDir,
                 workspaceId: "Cloud9",
-                unixId: null
+                userDir: null, // is this always there??
+                unixId: null,
+                host: host
             }, {
                 packagePath: "./cloud9.core",
                 debug: false,
@@ -170,11 +173,12 @@ var config = {
             "./cloud9.ide.revisions",
             {
                 packagePath: "./cloud9.ide.settings",
-                settingsPath: projectDir + "/.settings"
+                settingsPath: ".settings"
             },
             "./cloud9.ide.shell",
             "./cloud9.ide.state",
-            "./cloud9.ide.watcher"
+            "./cloud9.ide.watcher",
+            "./cloud9.sandbox.fs"
             ]
         }
     }

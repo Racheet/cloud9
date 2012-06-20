@@ -1,5 +1,7 @@
 "use strict";
 
+var util = require("util");
+var c9util = require("../cloud9.core/util");
 var spawn = require("child_process").spawn;
 var killTree = require("./killtree").killTree;
 
@@ -22,37 +24,39 @@ var exports = module.exports = function setup(options, imports, register) {
 };
 
 exports.factory = function(uid) {
-    return function(args, eventEmitter, eventName) {
-        return new Runner({
-            uid: uid, command: args.command, args: args.args, cwd: args.cwd, 
-            env: args.env, encoding: args.encoding, extra: args.extra, 
-            eventEmitter: eventEmitter, eventName: eventName
-        });
+    return function(args, eventEmitter, eventName, callback) {
+        var options = {};
+        c9util.extend(options, args);
+        options.uid = uid;
+        options.eventEmitter = eventEmitter;
+        options.eventName = eventName;
+        options.args = args.args;
+
+        return new Runner(options, callback);
     };
 };
 
-var Runner = exports.Runner = function(options) {
+var Runner = exports.Runner = function(options, callback) {
     this.uid = options.uid;
     this.command = options.command;
     this.args = options.args || [];
-    this.encoding = options.encoding || "utf8";
-
-    if (this.encoding === "binary") {
-        this.encoding = null;
-    }
     this.extra = options.extra;
 
     this.runOptions = {};
     if (options.cwd)
         this.runOptions.cwd = options.cwd;
 
-    var env = options.env || {};
-    
+    this.env = options.env || {};
     for (var key in process.env)
-        if (!env.hasOwnProperty(key))
-            env[key] = process.env[key];
+        if (!this.env.hasOwnProperty(key))
+            this.env[key] = process.env[key];
 
-    this.runOptions.env = env;
+    this.runOptions.env = this.env;
+
+    this.encoding = options.encoding || "utf8";
+    if (this.encoding === "binary") {
+        this.encoding = null;
+     }
 
     this.eventEmitter = options.eventEmitter;
     this.eventName = options.eventName;
@@ -65,6 +69,8 @@ var Runner = exports.Runner = function(options) {
     this.__defineGetter__("pid", function(){
         return (self.child.exitCode === null && self.child.signalCode === null)  ? self.child.pid : 0;
     });
+    
+    callback(null, self);
 };
 
 (function() {
@@ -115,7 +121,7 @@ var Runner = exports.Runner = function(options) {
             this.args = ["-Hu", "#" + this.uid, this.command].concat(this.args);
             this.command = "sudo";
         }
-
+        
         try {
             var child = spawn(this.command, this.args, this.runOptions);
         } catch (e) {
@@ -130,14 +136,13 @@ var Runner = exports.Runner = function(options) {
 
         child.stdout.on("data", sender("stdout"));
         child.stderr.on("data", sender("stderr"));
-        
-        if (this.encoding) {
-            child.stdout.setEncoding(this.encoding);
-            child.stderr.setEncoding(this.encoding);
+
+        if (self.encoding) {
+            child.stdout.setEncoding(self.encoding);
+            child.stderr.setEncoding(self.encoding);
         }
         
         function emit(msg) {
-            // console.log(self.eventName, msg);
             self.eventEmitter.emit(self.eventName, msg);
         }
 

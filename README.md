@@ -36,10 +36,16 @@ We support the newer versions of Chrome, Firefox and Safari.
 
 Requirements:
 
-  * NodeJS `>= 0.6.15` & NPM `>= 1.1.16`
-  * Sourcemint: `npm install -g sm`
+  * NodeJS `>= 0.6.15`
+  * NPM `>= 1.1.16`
 
 Install:
+
+    # Be sure you have sourcemint installed:
+
+    npm install -g sm
+    
+    # Then:
 
     sm clone --dev https://github.com/ajaxorg/cloud9/tree/master cloud9
     
@@ -48,8 +54,15 @@ Install:
     git clone https://github.com/ajaxorg/cloud9.git cloud9
     cd cloud9
     sm install
+    
+**// Super important for Linux users!**
 
-This creates a `cloud9` directory in your current directory, just `cd` into it
+If you are having issues with installing the o3/libxml dependency, be sure to check this issue for possible solutions:
+https://github.com/ajaxorg/node-libxml/issues/3
+
+**// end super important notice**
+
+The above install steps create a `cloud9` directory in your current directory. Just `cd` into it
 and run `bin/cloud9.sh` to start:
 
     cd cloud9
@@ -124,7 +137,7 @@ Main projects that we use as building blocks:
 
   * [async.js] by [fjakobs]
   * [jsDAV] by [mikedeboer]
-  * [connect] by [senchalabs](http://github,com/senchalabs)
+  * [connect] by [senchalabs](http://github.com/senchalabs)
   * [socket.io] by [LearnBoost](http://github.com/LearnBoost)
   * [ace](http://github.com/ajaxorg/ace) by [fjakobs]
   * [apf](http://www.ajax.org) by [ajax.org]

@@ -50,6 +50,7 @@ var ModesCaption = {
     "JavaScript" : "application/javascript",
     "Latex" : "application/x-latex",
     "Script" : "text/x-script",
+    "Less" : "text/x-less",
     "Lua" : "text/x-lua",
     "Markdown" : "text/x-markdown",
     "OCaml" : "text/x-script.ocaml",
@@ -63,13 +64,15 @@ var ModesCaption = {
     "SQL" : "text/x-sql",
     "Textile" : "text/x-web-textile",
     "HTML" : "text/html",
-    "XML" : "application/xml"
+    "XML" : "application/xml",
+    "XQuery" : "text/x-xquery"
 }
 
 var SupportedModes = {
     "application/javascript": "javascript",
     "application/json": "json",
     "text/css": "css",
+    "text/x-less": "less",
     "text/x-scss": "scss",
     "text/html": "html",
     "application/xhtml+xml": "html",
@@ -101,14 +104,15 @@ var SupportedModes = {
     "text/x-script.powershell": "powershell",
     "text/x-scala": "scala",
     "text/x-coldfusion": "coldfusion",
-    "text/x-sql": "sql"
+    "text/x-sql": "sql",
+    "text/x-xquery": "xquery"
 };
 
 var contentTypes = {
     "js": "application/javascript",
     "json": "application/json",
     "css": "text/css",
-    "less": "text/css",
+    "less": "text/x-less",
     "scss": "text/x-scss",
     "sass": "text/x-sass",
 
@@ -170,7 +174,9 @@ var contentTypes = {
     "sql": "text/x-sql",
 
     "sh": "application/x-sh",
-    "bash": "application/x-sh"
+    "bash": "application/x-sh",
+    
+    "xq": "text/x-xquery"
 };
 
 module.exports = ext.register("ext/code/code", {
@@ -307,6 +313,9 @@ module.exports = ext.register("ext/code/code", {
             doc.addEventListener("prop.value", function(e) {
                 if (this.editor != _self)
                     return;
+                
+                if (!doc || !doc.acesession)
+                    return; //This is probably a deconstructed document
 
                 doc.acesession.setValue(e.value || "");
 
@@ -468,11 +477,11 @@ module.exports = ext.register("ext/code/code", {
                 // check if there is a scriptid, if not check if the file is somewhere in the stack
                 if (typeof mdlDbgStack != "undefined" && mdlDbgStack.data && e.node
                   && (!e.node.hasAttribute("scriptid") || !e.node.getAttribute("scriptid"))
-                  && e.node.hasAttribute("scriptname") && e.node.getAttribute("scriptname")) {
-                    var nodes = mdlDbgStack.data.selectNodes('//frame[@script="' + e.node.getAttribute("scriptname").replace(ide.workspaceDir + "/", "").replace(/"/g, "&quot;") + '"]');
-                    if (nodes.length) {
+                  && e.node.hasAttribute("path")) {
+                    var path = e.node.getAttribute("path").slice(ide.davPrefix.length + 1);
+                    var nodes = mdlDbgStack.data.selectNodes('//frame[@script="' + path.replace(/"/g, "&quot;") + '"]');
+                    if (nodes.length)
                         e.node.setAttribute("scriptid", nodes[0].getAttribute("scriptid"));
-                    }
                 }
                 e.doc.editor.amlEditor.afterOpenFile(e.doc.editor.amlEditor.getSession());
             }
